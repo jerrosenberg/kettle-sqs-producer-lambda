@@ -1,0 +1,13 @@
+{
+  "name": "kettle-sqs-producer-lambda",
+  "version": "0.0.1",
+  "description": "AWS Lambda function to receive Amazon Alexa iKettle skill commands and produce SQS queue messages.",
+  "author": "Jeremy Rosenberg",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "aws-sdk": "^2.3.5"
+  }
+}
