@@ -104,7 +104,7 @@ function onIntent(intentRequest, session, callback, errorCallback) {
     } else if ("BoilAndKeepWarmIntent" === intentName) {
         console.log('BoilAndKeepWarmIntent received.');
         command('boil', errorCallback);
-        command('keepwarm' errorCallback);
+        command('keepwarm', errorCallback);
         callback({}, buildEmptyResponse(intentName));
     } else if ("KeepWarmIntent" === intentName) {
         console.log('KeepWarmIntent received');
