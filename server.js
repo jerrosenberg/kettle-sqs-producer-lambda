@@ -99,21 +99,18 @@ function onIntent(intentRequest, session, callback, errorCallback) {
     // Dispatch to your skill's intent handlers
     if ("BoilIntent" === intentName) {
         console.log('BoilIntent received.');
-        command('boil', errorCallback);
-        callback({}, buildEmptyResponse(intentName));
+        command('boil', function() { callback({}, buildEmptyResponse(intentName)); }, errorCallback);
     } else if ("BoilAndKeepWarmIntent" === intentName) {
         console.log('BoilAndKeepWarmIntent received.');
-        command('boil', errorCallback);
-        command('keepwarm', errorCallback);
-        callback({}, buildEmptyResponse(intentName));
+        command('boil', function () {
+            command('keepwarm', function () { callback({}, buildEmptyResponse(intentName)); }, errorCallback);
+        }, errorCallback);
     } else if ("KeepWarmIntent" === intentName) {
         console.log('KeepWarmIntent received');
-        command('keepwarm', errorCallback);
-        callback({}, buildEmptyResponse(intentName));
+        command('keepwarm', function() { callback({}, buildEmptyResponse(intentName)); }, errorCallback);
     } else if ("OffIntent" === intentName) {
         console.log('OffIntent received.');
-        command('off', errorCallback);
-        callback({}, buildEmptyResponse(intentName));
+        command('off', function() { callback({}, buildEmptyResponse(intentName)); }, errorCallback);
     } else {
         throw "Invalid intent";
     }
@@ -152,12 +149,13 @@ function handleSessionEndRequest(callback) {
     callback({}, buildSpeechletResponse(cardTitle, speechOutput, null, shouldEndSession));
 }
 
-function command(commandName, errorCallback) {
+function command(commandName, doneCallback, errorCallback) {
     var message = {
         MessageBody: JSON.stringify({ command: commandName }),
         QueueUrl: queueUrl
     };
     
+    console.log('Sending message ' + message.MessageBody);
     sqs.sendMessage(message, function (err, data) {
        if (err) {
            var errorMessage = 'Error sending message ' + message.MessageBody + ': ' + err;
@@ -166,7 +164,8 @@ function command(commandName, errorCallback) {
            return;
        }
        
-       console.log('Sent message Id ' + data.MessageId);
+       console.log('Sent message Id ' + data.MessageId + ': ' + message.MessageBody);
+       doneCallback();
     });
 }
 
