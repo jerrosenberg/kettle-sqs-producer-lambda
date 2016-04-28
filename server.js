@@ -154,8 +154,8 @@ function handleSessionEndRequest(callback) {
 
 function command(commandName, errorCallback) {
     var message = {
-        MessageBody = JSON.stringify({ command: commandName }),
-        QueueUrl = queueUrl
+        MessageBody: JSON.stringify({ command: commandName }),
+        QueueUrl: queueUrl
     };
     
     sqs.sendMessage(message, function (err, data) {
