@@ -1,3 +1,31 @@
+require('dotenv').config();
+
+var aws = require('aws-sdk');
+
+var applicationId = process.env['ALEXA_APPLICATION_ID'];
+var queueUrl = process.env['SQS_QUEUE_URL'];
+var sqsRegion = process.env['SQS_REGION'];
+
+if (!applicationId) {
+    console.log('ALEXA_APPLICATION_ID not set.');
+    process.exit(1);
+    return;
+}
+
+if (!queueUrl) {
+    console.log('SQS_QUEUE_URL not set.');
+    process.exit(1);
+    return;
+}
+
+if (!sqsRegion) {
+    console.log('SQS_REGION not set.');
+    process.exit(1);
+    return;
+}
+
+var sqs = new aws.SQS({ region: sqsRegion });
+
 // Route the incoming request based on type (LaunchRequest, IntentRequest,
 // etc.) The JSON body of the request is provided in the event parameter.
 exports.handler = function (event, context) {
@@ -8,7 +36,7 @@ exports.handler = function (event, context) {
          * Uncomment this if statement and populate with your skill's application ID to
          * prevent someone else from configuring a skill that sends requests to this function.
          */
-        if (event.session.application.applicationId !== "amzn1.echo-sdk-ams.app.1870cd87-679b-427b-841d-010f98cc6198") {
+        if (event.session.application.applicationId !== applicationId) {
              context.fail("Invalid Application ID");
         }
 
@@ -27,6 +55,9 @@ exports.handler = function (event, context) {
                 event.session,
                 function callback(sessionAttributes, speechletResponse) {
                     context.succeed(buildResponse(sessionAttributes, speechletResponse));
+                },
+                function errorCallback(message) {
+                    context.fail(message);
                 });
         } else if (event.request.type === "SessionEndedRequest") {
             onSessionEnded(event.request, event.session);
@@ -59,7 +90,7 @@ function onLaunch(launchRequest, session, callback) {
 /**
  * Called when the user specifies an intent for this skill.
  */
-function onIntent(intentRequest, session, callback) {
+function onIntent(intentRequest, session, callback, errorCallback) {
     console.log("onIntent requestId=" + intentRequest.requestId + ", sessionId=" + session.sessionId);
 
     var intent = intentRequest.intent,
@@ -68,20 +99,20 @@ function onIntent(intentRequest, session, callback) {
     // Dispatch to your skill's intent handlers
     if ("BoilIntent" === intentName) {
         console.log('BoilIntent received.');
-        command('boil');
+        command('boil', errorCallback);
         callback({}, buildEmptyResponse(intentName));
     } else if ("BoilAndKeepWarmIntent" === intentName) {
         console.log('BoilAndKeepWarmIntent received.');
-        command('boil');
-        command('keepwarm');
+        command('boil', errorCallback);
+        command('keepwarm' errorCallback);
         callback({}, buildEmptyResponse(intentName));
     } else if ("KeepWarmIntent" === intentName) {
         console.log('KeepWarmIntent received');
-        command('keepwarm');
+        command('keepwarm', errorCallback);
         callback({}, buildEmptyResponse(intentName));
     } else if ("OffIntent" === intentName) {
         console.log('OffIntent received.');
-        command('off');
+        command('off', errorCallback);
         callback({}, buildEmptyResponse(intentName));
     } else {
         throw "Invalid intent";
@@ -121,7 +152,22 @@ function handleSessionEndRequest(callback) {
     callback({}, buildSpeechletResponse(cardTitle, speechOutput, null, shouldEndSession));
 }
 
-function command(commandName) {
+function command(commandName, errorCallback) {
+    var message = {
+        MessageBody = JSON.stringify({ command: commandName }),
+        QueueUrl = queueUrl
+    };
+    
+    sqs.sendMessage(message, function (err, data) {
+       if (err) {
+           var errorMessage = 'Error sending message ' + message.MessageBody + ': ' + err;
+           console.log(errorMessage);
+           errorCallback(errorMessage);
+           return;
+       }
+       
+       console.log('Sent message Id ' + data.MessageId);
+    });
 }
 
 // --------------- Helpers that build all of the responses -----------------------

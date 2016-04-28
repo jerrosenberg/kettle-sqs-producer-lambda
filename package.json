@@ -8,6 +8,7 @@
     "start": "node server.js"
   },
   "dependencies": {
-    "aws-sdk": "^2.3.5"
+    "aws-sdk": "^2.3.6",
+    "dotenv": "^2.0.0"
   }
 }
